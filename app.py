@@ -11,8 +11,7 @@ from openai import OpenAI  # Groq API 연동을 위한 OpenAI 호환 클라이�
 from jinja2 import Environment, FileSystemLoader  # HTML 템플릿 렌더링을 위해 Jinja2를 임포트합니다.
 from dotenv import load_dotenv
 
-#렌더 때문에
-load_dotenv(dotenv_path=Path(__file__).parent / ".env")
+
 
 # 페이지 기본 설정 (제목, 아이콘, 레이아웃 및 사이드바 축소 상태 지정)
 st.set_page_config(
@@ -21,9 +20,23 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+#렌더 때문에
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 # Streamlit 시크릿 파일에서 Groq API 키를 안전하게 불러옵니다.
-GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+#GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+#add 매 리렌더링 마다 models.list()를 호출하지 않도록 캐싱 함수로 분리
+@st.cache_data(ttl=3600)
+def get_available_models(api_key: str):
+    """Groq 서버에서 현재 사용 가능한 모델 ID 목록을 조회하고 캐싱합니다."""
+    temp_client = OpenAI(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=api_key
+    )
+    return [m.id for m in temp_client.models.list().data]
+
 
 try:
     # add
@@ -38,7 +51,7 @@ try:
     MODEL_NAME = "openai/gpt-oss-120b"
 
     # 현재 계정에서 사용 가능한 모델 리스트를 서버로부터 조회합니다.
-    available_models = [m.id for m in client.models.list().data]
+    available_models = get_available_models(GROQ_API_KEY)
     # 사용 가능한 모델 중 비전(VLM) 관련 키워드가 포함된 모델을 자동으로 필터링합니다.
     vision_candidates = [
         m for m in available_models
