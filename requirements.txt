@@ -2,6 +2,6 @@ streamlit
 openai
 jinja2
 pillow
-python-dock
+python-docx
 pypdf
 python-dotenv
